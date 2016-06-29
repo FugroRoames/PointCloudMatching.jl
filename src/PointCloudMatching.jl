@@ -82,7 +82,7 @@ Returns:
 """
 function register(cloud, ref_cloud; abstol::Float64=1e-3, dist_type::Symbol=:surface,
                   maxit::Int=100, init_translation::Vector{Float64}=zeros(3),
-                  iterfunc=nothing)
+                  iterfunc=nothing, lambda=nothing)
 
     ref_normals = dnormals(ref_cloud)
 
@@ -94,7 +94,6 @@ function register(cloud, ref_cloud; abstol::Float64=1e-3, dist_type::Symbol=:sur
         inds = find_closest_points(p, ref_cloud)
         v = p - dpositions(ref_cloud)[:,inds]
 
-        frmsd_lambda = 0
         # Compute residuals
         if dist_type == :point
             d = vec(sum(v.^2, 1))
@@ -106,11 +105,14 @@ function register(cloud, ref_cloud; abstol::Float64=1e-3, dist_type::Symbol=:sur
         else
             error("Unknown residual distance measure: $dist_type ")
         end
+        if lambda !== nothing
+            frmsd_lambda = lambda # override
+        end
 
         # Detect inliers
         inlier_inds, f = frmsd_inliers(d, lambda=frmsd_lambda)
 
-        iterfunc === nothing || iterfunc(T, inds, inlier_inds)
+        iterfunc === nothing || iterfunc(i, T, inds, inlier_inds)
 
 
         # Optimal translation given match residuals.
